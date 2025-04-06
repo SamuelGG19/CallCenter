@@ -104,12 +104,51 @@ def ingresar_mensajes(cola: PriorityQueue):
         else:
             ...
 
-def separar_grupos(cola: PriorityQueue):
-    cola_aux = cola
-    prioridades = {}
-    while True:
-        
+def separar_grupos(cola: PriorityQueue) -> PriorityQueue:
+    if len(cola) == 0:
+        raise EmptyQueueError()
 
+    grupo = PriorityQueue()
+    cola_aux = PriorityQueue()
+    prioridades = {}
+    while len(cola) != 0:
+        mensaje = cola.dequeue()
+        if mensaje.prioridad in prioridades:
+            prioridades[mensaje.prioridad] += 1
+        else:
+            prioridades[mensaje.prioridad] = 1
+        cola_aux.enqueue(mensaje)
+
+    for peso, cont in prioridades.items():
+        if cont == max(prioridades.values()):
+            prioridad = peso
+
+    while len(cola_aux) != 0:
+        mensaje = cola_aux.dequeue()
+        if mensaje.prioridad == prioridad:
+            grupo.enqueue(mensaje)
+        else:
+            cola.enqueue(mensaje)
+
+    return grupo
+
+def obtener_primero_y_ultimo(cola: PriorityQueue) -> PriorityQueue:
+    if len(cola) == 0:
+        raise EmptyQueueError()
+
+    grupo = separar_grupos(cola)
+    if len(grupo) == 1:
+        primero = PriorityQueue()
+        primero.enqueue(grupo.dequeue())
+        return primero
+
+    primero_y_ultimo = PriorityQueue()
+    primero_y_ultimo.enqueue(grupo.dequeue())
+    while len(grupo) > 1:
+        cola.enqueue(grupo.dequeue())
+
+    primero_y_ultimo.enqueue(grupo.dequeue())
+    return primero_y_ultimo
 
 
 if __name__ == "__main__":
@@ -120,28 +159,51 @@ if __name__ == "__main__":
     agente3 = Agente("basico")
 
     ingresar_mensajes(cola_mensajes)
-
-    thread1 = Thread(target=agente1.atender_mensaje, args=(cola_mensajes,))
-    thread2 = Thread(target=agente2.atender_mensaje, args=(cola_mensajes,))
-    thread3 = Thread(target=agente3.atender_mensaje, args=(cola_mensajes,))
-
-    while True:
-        if len(cola_mensajes) == 0:
-            opcion = input("Terminar? (Y/N): ")
-            if opcion.upper() == "Y":
-                break
-            elif opcion.upper() == "N":
-                ingresar_mensajes(cola_mensajes)
+    if len(cola_mensajes) != 0:
+        while True:
+            opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nOpción: ")
+            if opc == "1":
                 thread1 = Thread(target=agente1.atender_mensaje, args=(cola_mensajes,))
                 thread2 = Thread(target=agente2.atender_mensaje, args=(cola_mensajes,))
                 thread3 = Thread(target=agente3.atender_mensaje, args=(cola_mensajes,))
-            else:
-                continue
+                break
+            if opc == "2":
+                grupo = obtener_primero_y_ultimo(cola_mensajes)
+                thread1 = Thread(target=agente1.atender_mensaje, args=(grupo,))
+                thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
+                thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
+                break
+        
 
-        thread1.start()
-        thread2.start()
-        thread3.start()
+        while True:
+            if len(cola_mensajes) == 0 or opc == 2:
+                opcion = input("Terminar? (Y/N): ")
+                if opcion.upper() == "Y":
+                    break
+                if opcion.upper() == "N":
+                    ingresar_mensajes(cola_mensajes)
+                    while True:
+                        opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nOpción: ")
+                        if opc == "1":
+                            thread1 = Thread(target=agente1.atender_mensaje, args=(cola_mensajes,))
+                            thread2 = Thread(target=agente2.atender_mensaje, args=(cola_mensajes,))
+                            thread3 = Thread(target=agente3.atender_mensaje, args=(cola_mensajes,))
+                            break
+                        if opc == "2":
+                            grupo = obtener_primero_y_ultimo(cola_mensajes)
+                            thread1 = Thread(target=agente1.atender_mensaje, args=(grupo,))
+                            thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
+                            thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
+                            break
+                else:
+                    continue
 
-        thread1.join()
-        thread2.join()
-        thread3.join()
+            opc = int(opc)
+
+            thread1.start()
+            thread2.start()
+            thread3.start()
+
+            thread1.join()
+            thread2.join()
+            thread3.join()
