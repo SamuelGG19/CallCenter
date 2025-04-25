@@ -150,6 +150,52 @@ def obtener_primero_y_ultimo(cola: PriorityQueue) -> PriorityQueue:
     primero_y_ultimo.enqueue(grupo.dequeue())
     return primero_y_ultimo
 
+def largo_y_corto(cola: PriorityQueue) -> PriorityQueue:
+    if len(cola) == 0:
+        raise EmptyQueueError()
+
+    grupo = separar_grupos(cola)
+    if len(grupo) == 1:
+        unico = PriorityQueue()
+        unico.enqueue(grupo.dequeue())
+        return unico
+    
+    largo_y_corto = PriorityQueue()
+
+    for i in range(len(grupo)):
+        anterior_m = None
+        anterior_M = None
+    
+        if i != 0:
+            if len(grupo.first().mensaje) < len(mas_corto.mensaje):
+                anterior_m = mas_corto
+                mas_corto = grupo.dequeue()
+            
+            elif len(grupo.first().mensaje) > len(mas_largo.mensaje):
+                anterior_M = mas_largo
+                mas_largo = grupo.dequeue()
+            
+            else:
+                cola_aux.enqueue(grupo.dequeue())
+
+        else:
+            mas_corto = grupo.first()
+            mas_largo = grupo.dequeue()
+            cola_aux = PriorityQueue()
+        
+        if anterior_m != mas_largo and anterior_m is not None:
+            cola_aux.enqueue(anterior_m)
+        if anterior_M != mas_corto and anterior_M is not None:
+            cola_aux.enqueue(anterior_M)
+        
+
+    for _ in range(len(cola_aux)):
+        cola.enqueue(cola_aux.dequeue())
+
+    largo_y_corto.enqueue(mas_largo)
+    largo_y_corto.enqueue(mas_corto)
+    return largo_y_corto
+    
 
 if __name__ == "__main__":
     cola_mensajes = PriorityQueue()
@@ -161,7 +207,7 @@ if __name__ == "__main__":
     ingresar_mensajes(cola_mensajes)
     if len(cola_mensajes) != 0:
         while True:
-            opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nOpción: ")
+            opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nIngrese 3 para atender el más largo y el más corto.\nOpción: ")
             if opc == "1":
                 thread1 = Thread(target=agente1.atender_mensaje, args=(cola_mensajes,))
                 thread2 = Thread(target=agente2.atender_mensaje, args=(cola_mensajes,))
@@ -173,17 +219,23 @@ if __name__ == "__main__":
                 thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
                 thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
                 break
+            if opc == "3":
+                grupo = largo_y_corto(cola_mensajes)
+                thread1 = Thread(target=agente1.atender_mensaje, args=(grupo,))
+                thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
+                thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
+                break
         
 
         while True:
-            if len(cola_mensajes) == 0 or opc == 2:
+            if len(cola_mensajes) == 0 or opc == 2 or opc == 3:
                 opcion = input("Terminar? (Y/N): ")
                 if opcion.upper() == "Y":
                     break
                 if opcion.upper() == "N":
                     ingresar_mensajes(cola_mensajes)
                     while True:
-                        opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nOpción: ")
+                        opc = input("Ingrese 1 para atender todos los mensajes.\nIngrese 2 para atender el primero y el último.\nIngrese 3 para atender el más largo y el más corto.\nOpción: ")
                         if opc == "1":
                             thread1 = Thread(target=agente1.atender_mensaje, args=(cola_mensajes,))
                             thread2 = Thread(target=agente2.atender_mensaje, args=(cola_mensajes,))
@@ -195,6 +247,13 @@ if __name__ == "__main__":
                             thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
                             thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
                             break
+                        if opc == "3":
+                            grupo = largo_y_corto(cola_mensajes)
+                            thread1 = Thread(target=agente1.atender_mensaje, args=(grupo,))
+                            thread2 = Thread(target=agente2.atender_mensaje, args=(grupo,))
+                            thread3 = Thread(target=agente3.atender_mensaje, args=(grupo,))
+                            break
+
                 else:
                     continue
 
